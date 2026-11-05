@@ -23,8 +23,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MyOTTTheme {
-
+                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    Greeting(
+                        modifier = Modifier.padding(innerPadding)
+                    )
+                }
             }
         }
     }
+}
+
+@Composable
+fun Greeting(modifier: Modifier = Modifier) {
+    Text(
+        text = "고급 레스토랑 팀",
+        modifier = modifier
+    )
 }
