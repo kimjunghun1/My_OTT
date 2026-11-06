@@ -30,17 +30,18 @@ class GenreViewModel(
     private fun saveDefaultGenres() {
         viewModelScope.launch { // saveDefaultGenres()는 suspend 함수이기 때문에 코루틴을 실행하는 launch 사용
             val defaultGenres = listOf(
-                PreferredGenre("ACTION", "액션", isSelected = true),
-                PreferredGenre("COMEDY", "코미디", isSelected = true),
                 PreferredGenre("SF", "SF", isSelected = true),
-                PreferredGenre("ROMANCE", "로맨스", isSelected = true),
+                PreferredGenre("Noir", "느와르", isSelected = true),
+                PreferredGenre("ACTION", "액션", isSelected = true),
                 PreferredGenre("HORROR", "공포", isSelected = true),
-                PreferredGenre("DOCUMENTARY", "다큐멘터리", isSelected = true),
-                PreferredGenre("CRIME", "범죄", isSelected = true),
-                PreferredGenre("MYSTERY", "미스터리", isSelected = true),
+                PreferredGenre("COMEDY", "코미디", isSelected = true),
+                PreferredGenre("FANTASY", "판타지", isSelected = true),
+                PreferredGenre("ROMANCE", "로맨스", isSelected = true),
                 PreferredGenre("HISTORY", "역사", isSelected = true),
                 PreferredGenre("MUSICAL", "뮤지컬", isSelected = true),
-                PreferredGenre("ANIMATION", "애니메이션", isSelected = true)
+                PreferredGenre("MYSTERY", "미스터리", isSelected = true),
+                PreferredGenre("ANIMATION", "애니메이션", isSelected = true),
+                PreferredGenre("DOCUMENTARY", "다큐멘터리", isSelected = true)
             )
             repository.saveDefaultGenres(defaultGenres)
         }
