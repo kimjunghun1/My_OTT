@@ -36,22 +36,20 @@ val SubTextColor = Color(0xFFAAAAAA)
 fun GenreSelectionScreen(
     // 현재 사용자가 선택한 장르 목록
     selectedGenres: Set<String>,
-
     // 장르 선택 상태가 변경되었을 때, 변경된 장르 목록을 상위 화면으로 전달하는 함수
     onSelectedChange: (Set<String>) -> Unit,
 
-    // 뒤로 가기 버튼을 눌렀을 때 실행되는 함수, 이전 화면은 추가해야됨
-    onBackClick: () -> Unit
+
 ) {
 
     // 화면에 표시할 장르 목록
     val genres = listOf(
         "⚔  액션", "♧  공포",
         "✧  SF", "♜  역사",
-        "♧  느와르", "◎  스릴러",
+        "♧  느와르", "♬ 뮤지컬",
         "♡  로맨스", "☻  코미디",
-        "♢  판타지", "♬ 뮤지컬",
-        "♠  미스터리", "▧  다큐멘터리"
+        "♢  판타지", "♠  미스터리",
+        "◎  애니메이션", "▧  다큐멘터리"
     )
 
     // Column : 화면의 요소들을 세로 방향으로 배치
@@ -72,10 +70,8 @@ fun GenreSelectionScreen(
                 text = "←",
                 color = TextColor,
                 fontSize = 30.sp,
-
-                // 클릭하면 상위 화면에서 전달받은 함수 실행
                 modifier = Modifier.clickable {
-                    onBackClick()
+                    // 이전 화면 미구현 이슈
                 }
             )
 
