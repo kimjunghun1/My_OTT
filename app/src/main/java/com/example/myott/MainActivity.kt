@@ -12,7 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
-import com.example.myott.ui.auth.RegistrationScreen
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.genreapp.data.AppDatabase
+import com.example.myott.auth.AuthRepository
+import com.example.myott.auth.AuthRoute
+import com.example.myott.auth.AuthViewModel
 import com.example.myott.ui.theme.MyOTTTheme
 
 /** 회원가입 폼을 여는 액티비티다. */
@@ -24,21 +28,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // DB → Repository 준비
+        val database = AppDatabase.getDatabase(applicationContext)
+        val authRepository = AuthRepository(database.userDao())
+
         setContent {
             MyOTTTheme {
+                val authViewModel: AuthViewModel =
+                    viewModel(factory = AuthViewModel.factory(authRepository))
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    RegistrationScreen(
-                        model = registration,
-                        onCancel = { finish() },
-                        modifier = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
+                    AuthRoute(
+                        authViewModel = authViewModel,
+                        modifier = Modifier.padding(innerPadding)
                     )
                 }
             }
         }
-    }
-
-    companion object {
-        // 다른 화면에서 회원가입 액티비티를 열 때 사용할 인텐트를 만든다.
-        fun registrationIntent(context: Context): Intent = Intent(context, MainActivity::class.java)
     }
 }
