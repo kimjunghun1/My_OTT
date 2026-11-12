@@ -1,5 +1,6 @@
 package com.example.myott.main
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,11 +39,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.rememberAsyncImagePainter
+import com.example.myott.API.Movie
+import com.example.myott.API.MovieViewModel
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
@@ -161,36 +167,55 @@ private fun ContentSection(title: String, subtitle: String) {
             modifier = Modifier.padding(horizontal = 20.dp)
         )
         Spacer(modifier = Modifier.height(12.dp))
-        PosterPlaceholderRow()
+        val movieViewModel: MovieViewModel = viewModel()
+        val viewState by movieViewModel.movieState
+        PosterPlaceholderRow(movie = viewState.movie)
     }
 }
 
 // 포스터가 들어갈 빈 자리 (가로 스크롤)
 @Composable
-private fun PosterPlaceholderRow() {
+private fun PosterPlaceholderRow(movie: Movie?) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(5) {
-            Column(modifier = Modifier.width(120.dp)) {
+            Column {
                 // 포스터 자리
                 Box(
                     modifier = Modifier
                         .size(width = 120.dp, height = 180.dp)
                         .clip(RoundedCornerShape(10.dp))
-                        .background(MainCard)
-                )
+                        .background(com.example.myott.main.MainCard)
+                ){
+                    if(movie != null){
+                        Image(
+                            painter = rememberAsyncImagePainter("https://image.tmdb.org/t/p/w500${movie.poster_path}"),
+                            contentDescription = null,
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop, // 카드 비율에 맞게 꽉 채움
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(6.dp))
-                // 제목 자리 (TODO: TMDB 연동 후 실제 제목으로 교체)
-                Text(
-                    text = "제목",
-                    color = MainText,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // 제목 자리
+                if(movie != null){
+                    Text(
+                        text = movie.title,
+                        color = Color.White,
+                        fontSize = 12.sp,
+                        style = TextStyle(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.width(120.dp)
+                    )
+                } else{
+                    Box(
+                        modifier = Modifier
+                            .size(width = 90.dp, height = 12.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(com.example.myott.main.MainCard)
+                    )
+                }
             }
         }
     }
