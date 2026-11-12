@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
@@ -77,7 +78,7 @@ fun MainScreen(
         // 탭 내용
         Box(modifier = Modifier.weight(1f)) {
             when (MainTab.entries[selectedTab]) {
-                MainTab.HOME -> HomeTab(onSearchClick = { selectedTab = MainTab.SEARCH.ordinal })
+                MainTab.HOME -> HomeTab()
                 MainTab.SEARCH -> PlaceholderTab("검색 화면", "검색 화면 담당 팀원이 이 자리에 넣을 예정") // TODO: 검색 화면 연결
                 MainTab.INTEREST -> PlaceholderTab("관심 콘텐츠", "준비 중") // TODO: 관심 화면 연결
                 MainTab.MY_PAGE -> myPageContent()
@@ -110,7 +111,7 @@ fun MainScreen(
 
 // 홈 탭 — 섹션 제목 + 빈 포스터 자리
 @Composable
-private fun HomeTab(onSearchClick: () -> Unit) {
+private fun HomeTab() {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp)
@@ -130,9 +131,6 @@ private fun HomeTab(onSearchClick: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )
-                IconButton(onClick = onSearchClick) {
-                    Icon(Icons.Filled.Search, contentDescription = "검색", tint = MainText)
-                }
             }
         }
 
@@ -141,7 +139,7 @@ private fun HomeTab(onSearchClick: () -> Unit) {
         item { ContentSection("계절에 어울리는 작품", "지금 계절에 많이 보는 장르") }
         item { ContentSection("좋아하는 배우와 함께하는 작품", "관심 작품에 나온 배우의 다른 작품") }
         item { ContentSection("선호 감독의 추천 작품", "관심 작품 감독의 다른 작품") }
-        item { ContentSection("카테고리별 콘텐츠", "장르별로 모아 보기") }
+
     }
 }
 
@@ -176,7 +174,8 @@ private fun PosterPlaceholderRow() {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(5) {
-            Column {
+            Column(modifier = Modifier.width(120.dp)) {
+                // 포스터 자리
                 Box(
                     modifier = Modifier
                         .size(width = 120.dp, height = 180.dp)
@@ -184,21 +183,14 @@ private fun PosterPlaceholderRow() {
                         .background(MainCard)
                 )
                 Spacer(modifier = Modifier.height(6.dp))
-                // 제목 자리
-                Box(
-                    modifier = Modifier
-                        .size(width = 90.dp, height = 12.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MainCard)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                // 연도·장르 자리
-                Box(
-                    modifier = Modifier
-                        .width(60.dp)
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MainCard)
+                // 제목 자리 (TODO: TMDB 연동 후 실제 제목으로 교체)
+                Text(
+                    text = "제목",
+                    color = MainText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
             }
         }
