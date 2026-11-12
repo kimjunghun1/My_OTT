@@ -13,6 +13,15 @@ class GenreViewModel(
     private val repository: GenreRepository // Repository 객체를 외부에서 전달받음
 ) : ViewModel() { // ViewModel 클래스 상속 -> 화면이 회전하거나 재구성되는 등의 상황에서도 화면에 필요한 데이터 유지
 
+    // 전체 장르 목록을 StateFlow로 관리
+    val allGenres: StateFlow<List<PreferredGenre>> =
+        repository.allGenres
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+
     // Flow를 StateFlow로 변환하여 UI에서 안전하게 관찰
     val selectedGenres: StateFlow<List<PreferredGenre>> = repository.selectedGenres
         // StateFlow를 사용해 사용자 정보의 현재 상태를 보관하면서 전달
@@ -27,23 +36,24 @@ class GenreViewModel(
         saveDefaultGenres() // 아래 함수를 호출해 앱을 처음 실행했을 때 장르 목록 보여줌
     }
 
+    // 기본 장르 저장
     private fun saveDefaultGenres() {
-        viewModelScope.launch { // saveDefaultGenres()는 suspend 함수이기 때문에 코루틴을 실행하는 launch 사용
-            val defaultGenres = listOf(
-                PreferredGenre("SF", "SF", isSelected = true),
-                PreferredGenre("Noir", "느와르", isSelected = true),
-                PreferredGenre("ACTION", "액션", isSelected = true),
-                PreferredGenre("HORROR", "공포", isSelected = true),
-                PreferredGenre("COMEDY", "코미디", isSelected = true),
-                PreferredGenre("FANTASY", "판타지", isSelected = true),
-                PreferredGenre("ROMANCE", "로맨스", isSelected = true),
-                PreferredGenre("HISTORY", "역사", isSelected = true),
-                PreferredGenre("MUSICAL", "뮤지컬", isSelected = true),
-                PreferredGenre("MYSTERY", "미스터리", isSelected = true),
-                PreferredGenre("ANIMATION", "애니메이션", isSelected = true),
-                PreferredGenre("DOCUMENTARY", "다큐멘터리", isSelected = true)
-            )
-            repository.saveDefaultGenres(defaultGenres)
+        viewModelScope.launch {
+            repository.saveDefaultGenres()
         }
     }
+
+    // 사용자가 선택한 장르의 상태 변경
+    fun updateGenreSelection(
+        genreId: String,
+        selected: Boolean
+    ) {
+        viewModelScope.launch {
+            repository.updateGenreSelection(
+                genreId,
+                selected
+            )
+        }
+    }
+
 }

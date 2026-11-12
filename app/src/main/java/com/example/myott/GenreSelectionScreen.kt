@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.myott.GenreViewModel
+
 
 
 // 색상 리스트 수정 편하라고 미리 만들어놈
@@ -34,16 +38,31 @@ val SubTextColor = Color(0xFFAAAAAA)
 
 @Composable
 fun GenreSelectionScreen(
-    // 현재 사용자가 선택한 장르 목록
-    selectedGenres: Set<String>,
-    // 장르 선택 상태가 변경되었을 때, 변경된 장르 목록을 상위 화면으로 전달하는 함수
-    onSelectedChange: (Set<String>) -> Unit,
-
-
+    // 변경: ViewModel을 전달받음
+    genreViewModel: GenreViewModel,
+    modifier: Modifier = Modifier
 ) {
 
-    // 화면에 표시할 장르 목록
-    val genres = listOf(
+    // 변경 : ViewModel에서 전체 장르 목록을 가져옴
+    // collectAsState()를 사용하여 DB 데이터가 변경되면 화면도 자동으로 갱신
+    val genres by genreViewModel.allGenres.collectAsState()
+
+    // 추가: 현재 선택된 장르 개수 계산
+    val selectedCount = genres.count { it.isSelected }
+
+    // 추가: 기존 화면의 장르 배치 순서 유지
+    // DB에 저장된 genreId와 비교하여 장르의 순서를 정함
+    val genreOrder = listOf(
+        "ACTION", "HORROR",
+        "SF", "HISTORY",
+        "Noir", "MUSICAL",
+        "ROMANCE", "COMEDY",
+        "FANTASY", "MYSTERY",
+        "ANIMATION", "DOCUMENTARY"
+    )
+
+    // 추가: 장르 이름과 아이콘을 저장하는 리스트
+    val genreNames = listOf(
         "⚔  액션", "♧  공포",
         "✧  SF", "♜  역사",
         "♧  느와르", "♬ 뮤지컬",
@@ -52,9 +71,14 @@ fun GenreSelectionScreen(
         "◎  애니메이션", "▧  다큐멘터리"
     )
 
+    // 추가: DB에서 가져온 장르를 기존 화면 순서로 정렬
+    val displayGenres = genres.sortedBy {
+        genreOrder.indexOf(it.genreId)
+    }
+
     // Column : 화면의 요소들을 세로 방향으로 배치
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize() // 화면 전체 크기 사용
             .background(BackgroundColor) // 배경색 설정
             .padding(20.dp) // 화면 가장자리 여백 설정
@@ -127,10 +151,10 @@ fun GenreSelectionScreen(
             )
 
             // 현재 선택한 장르 개수 표시
-            // selectedGenres.size : 선택된 장르의 개수
+            // 변경 : selectedCount : DB에서 가져온 선택된 장르의 개수
             // 최대 선택 가능 개수는 3개
             Text(
-                text = "${selectedGenres.size}/3개 선택",
+                text = "${selectedCount}/3개 선택",
                 color = PurpleColor,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
@@ -146,25 +170,41 @@ fun GenreSelectionScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-
                 // 한 줄에 장르 카드 2개 배치
                 for (j in 0 until 2) {
 
-                    val genre = genres[i * 2 + j]
+                    val index = i * 2 + j
 
-                    GenreCard(
-                        genre = genre,
-                        isSelected = selectedGenres.contains(genre),
-                        modifier = Modifier.weight(1f)
-                    ) {
+                    // DB에서 장르 데이터를 가져왔을 때만 카드 표시
+                    if (index < displayGenres.size) {
 
-                        // 이미 선택한 장르라면 선택 해제
-                        if (selectedGenres.contains(genre)) {
-                            onSelectedChange(selectedGenres - genre)
-                        }
-                        // 선택 개수가 3개 미만이면 장르 추가
-                        else if (selectedGenres.size < 3) {
-                            onSelectedChange(selectedGenres + genre)
+                        // 정렬된 장르 목록에서 현재 위치의 장르 가져오기
+                        val genre = displayGenres[index]
+
+                        // 장르 카드 생성
+                        GenreCard(
+                            // 장르 ID에 맞는 아이콘과 장르 이름 표시
+                            genre = genreNames[genreOrder.indexOf(genre.genreId)],
+                            // DB에 저장된 장르의 선택 상태 전달
+                            isSelected = genre.isSelected,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            // 이미 선택한 장르라면 선택 해제
+                            // DB에 해당 장르의 선택 상태를 false로 변경
+                            if (genre.isSelected) {
+                                genreViewModel.updateGenreSelection(
+                                    genre.genreId,
+                                    false
+                                )
+                            }
+                            // 선택 개수가 3개 미만이면 장르 선택
+                            // DB에 해당 장르의 선택 상태를 true로 변경
+                            else if (selectedCount < 3) {
+                                genreViewModel.updateGenreSelection(
+                                    genre.genreId,
+                                    true
+                                )
+                            }
                         }
                     }
                 }
@@ -172,7 +212,6 @@ fun GenreSelectionScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
         }
-
         // 남은 공간을 차지하여 하단 버튼을 화면 아래쪽에 배치
         Spacer(modifier = Modifier.weight(1f))
 
@@ -187,8 +226,8 @@ fun GenreSelectionScreen(
 
         // 다음 화면 이동 버튼
         Button(
-            // 다음화면이 없어 아직 미구현, 기능 추가 예정
-            onClick = { },
+            // 다음화면이 없어 아직 미구현, 기능 추가
+            onClick = {  },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
