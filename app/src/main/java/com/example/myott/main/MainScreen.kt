@@ -59,12 +59,11 @@ private enum class MainTab(val label: String, val icon: ImageVector) {
     MY_PAGE("마이페이지", Icons.Filled.Person),
 }
 
-// 메인 화면 (로그인 후 첫 화면)
+// 메인 화면 (앱 실행 시 첫 화면)
 // - 하단 탭: 홈 / 검색 / 관심 / 마이페이지
 // - 홈 탭은 섹션 틀만 있고, 콘텐츠는 아직 띄우지 않는다. (TMDB 연동 후 채울 예정)
 @Composable
 fun MainScreen(
-    myPageContent: @Composable () -> Unit, // 마이페이지 탭에 보여줄 화면 (지금은 로그인 정보 + 로그아웃 화면)
     modifier: Modifier = Modifier,
 ) {
     // 현재 선택된 탭 (처음엔 홈). 사용자가 하단 탭을 눌러야만 바뀐다.
@@ -81,7 +80,7 @@ fun MainScreen(
                 MainTab.HOME -> HomeTab()
                 MainTab.SEARCH -> PlaceholderTab("검색 화면", "검색 화면 담당 팀원이 이 자리에 넣을 예정") // TODO: 검색 화면 연결
                 MainTab.INTEREST -> PlaceholderTab("관심 콘텐츠", "준비 중") // TODO: 관심 화면 연결
-                MainTab.MY_PAGE -> myPageContent()
+                MainTab.MY_PAGE -> MyPageScreen()
             }
         }
 
@@ -116,7 +115,7 @@ private fun HomeTab() {
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        // 상단 바: 앱 이름 + 검색 아이콘
+        // 상단 바: 앱 이름
         item {
             Row(
                 modifier = Modifier
@@ -215,5 +214,5 @@ private fun PlaceholderTab(title: String, description: String) {
 @Preview(showBackground = true, backgroundColor = 0xFF121212, heightDp = 800)
 @Composable
 private fun MainScreenPreview() {
-    MainScreen(myPageContent = { PlaceholderTab("마이페이지", "로그인 정보 + 로그아웃") })
+    MainScreen()
 }
