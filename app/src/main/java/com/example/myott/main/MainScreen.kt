@@ -28,6 +28,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -49,6 +50,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.myott.API.Movie
 import com.example.myott.API.MovieViewModel
+import com.example.myott.ui.search.SearchScreen
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
@@ -71,6 +73,8 @@ private enum class MainTab(val label: String, val icon: ImageVector) {
 @Composable
 fun MainScreen(
     modifier: Modifier = Modifier,
+    // 검색 탭을 선택했을 때 표시할 화면이다.
+    searchContent: @Composable () -> Unit,
 ) {
     // 현재 선택된 탭 (처음엔 홈). 사용자가 하단 탭을 눌러야만 바뀐다.
     var selectedTab by rememberSaveable { mutableIntStateOf(MainTab.HOME.ordinal) }
@@ -84,7 +88,7 @@ fun MainScreen(
         Box(modifier = Modifier.weight(1f)) {
             when (MainTab.entries[selectedTab]) {
                 MainTab.HOME -> HomeTab()
-                MainTab.SEARCH -> PlaceholderTab("검색 화면", "검색 화면 담당 팀원이 이 자리에 넣을 예정") // TODO: 검색 화면 연결
+                MainTab.SEARCH -> Surface(content = searchContent)
                 MainTab.INTEREST -> PlaceholderTab("관심 콘텐츠", "준비 중") // TODO: 관심 화면 연결
                 MainTab.MY_PAGE -> MyPageScreen()
             }
@@ -239,5 +243,5 @@ private fun PlaceholderTab(title: String, description: String) {
 @Preview(showBackground = true, backgroundColor = 0xFF121212, heightDp = 800)
 @Composable
 private fun MainScreenPreview() {
-    MainScreen()
+    MainScreen(searchContent = { SearchScreen() })
 }
