@@ -21,15 +21,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         enableEdgeToEdge()
-        // Room 데이터베이스 생성
-        val database = AppDatabase.getDatabase(applicationContext)
-
-        // Repository 생성
-        val repository = GenreRepository(database.genreDao())
-
-        // ViewModel Factory 생성
-        val factory = GenreViewModelFactory(repository)
-
         setContent {
             MyOTTTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -41,19 +32,3 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ViewModel Factory
-class GenreViewModelFactory(
-    private val repository: GenreRepository
-) : ViewModelProvider.Factory {
-
-    override fun <T : ViewModel> create(
-        modelClass: Class<T>
-    ): T {
-        if (modelClass.isAssignableFrom(GenreViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            return GenreViewModel(repository) as T
-        }
-
-        throw IllegalArgumentException("Unknown ViewModel class")
-    }
-}
