@@ -84,8 +84,8 @@ fun MainScreen(
         Box(modifier = Modifier.weight(1f)) {
             when (MainTab.entries[selectedTab]) {
                 MainTab.HOME -> HomeTab()
-                MainTab.SEARCH -> PlaceholderTab("검색 화면", "검색 화면 담당 팀원이 이 자리에 넣을 예정") // TODO: 검색 화면 연결
-                MainTab.INTEREST -> PlaceholderTab("관심 콘텐츠", "준비 중") // TODO: 관심 화면 연결
+                MainTab.SEARCH -> SearchScreen() // TODO: 검색 화면 연결
+                MainTab.INTEREST -> FavoriteScreen()// TODO: 관심 화면 연결
                 MainTab.MY_PAGE -> MyPageScreen()
             }
         }
