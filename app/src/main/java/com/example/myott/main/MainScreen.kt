@@ -1,6 +1,8 @@
 package com.example.myott.main
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,6 +52,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.myott.API.Movie
 import com.example.myott.API.MovieViewModel
+import com.example.myott.detail.ContentDetailScreen
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
@@ -74,6 +78,8 @@ fun MainScreen(
 ) {
     // 현재 선택된 탭 (처음엔 홈). 사용자가 하단 탭을 눌러야만 바뀐다.
     var selectedTab by rememberSaveable { mutableIntStateOf(MainTab.HOME.ordinal) }
+    // 상세 화면을 보고 있는 콘텐츠 id (null이면 상세 화면 닫힘)
+    var detailMovieId by rememberSaveable { mutableStateOf<Int?>(null) }
 
     Column(
         modifier = modifier
@@ -82,8 +88,16 @@ fun MainScreen(
     ) {
         // 탭 내용
         Box(modifier = Modifier.weight(1f)) {
-            when (MainTab.entries[selectedTab]) {
-                MainTab.HOME -> HomeTab()
+            val movieId = detailMovieId
+            if (movieId != null) {
+                // 콘텐츠 상세 화면 (휴대폰 뒤로가기 / 화면의 뒤로가기 버튼으로 닫힘)
+                BackHandler { detailMovieId = null }
+                ContentDetailScreen(
+                    movieId = movieId,
+                    onBack = { detailMovieId = null }
+                )
+            } else when (MainTab.entries[selectedTab]) {
+                MainTab.HOME -> HomeTab(onMovieClick = { detailMovieId = it })
                 MainTab.SEARCH -> SearchScreen() // TODO: 검색 화면 연결
                 MainTab.INTEREST -> FavoriteScreen()// TODO: 관심 화면 연결
                 MainTab.MY_PAGE -> MyPageScreen()
@@ -98,7 +112,10 @@ fun MainScreen(
             MainTab.entries.forEach { tab ->
                 NavigationBarItem(
                     selected = selectedTab == tab.ordinal,
-                    onClick = { selectedTab = tab.ordinal },
+                    onClick = {
+                        selectedTab = tab.ordinal
+                        detailMovieId = null // 탭을 누르면 상세 화면 닫기
+                    },
                     icon = { Icon(tab.icon, contentDescription = tab.label) },
                     label = { Text(tab.label) },
                     colors = NavigationBarItemDefaults.colors(
@@ -116,7 +133,7 @@ fun MainScreen(
 
 // 홈 탭 — 섹션 제목 + 빈 포스터 자리
 @Composable
-private fun HomeTab() {
+private fun HomeTab(onMovieClick: (Int) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 24.dp)
@@ -140,17 +157,17 @@ private fun HomeTab() {
         }
 
         // TODO: TMDB 연동 후 각 섹션의 PosterPlaceholderRow를 실제 콘텐츠 목록으로 교체
-        item { ContentSection("지금 당신을 위한 추천", "선호 장르와 관심 기록을 반영한 추천") }
-        item { ContentSection("계절에 어울리는 작품", "지금 계절에 많이 보는 장르") }
-        item { ContentSection("좋아하는 배우와 함께하는 작품", "관심 작품에 나온 배우의 다른 작품") }
-        item { ContentSection("선호 감독의 추천 작품", "관심 작품 감독의 다른 작품") }
+        item { ContentSection("지금 당신을 위한 추천", "선호 장르와 관심 기록을 반영한 추천", onMovieClick) }
+        item { ContentSection("계절에 어울리는 작품", "지금 계절에 많이 보는 장르", onMovieClick) }
+        item { ContentSection("좋아하는 배우와 함께하는 작품", "관심 작품에 나온 배우의 다른 작품", onMovieClick) }
+        item { ContentSection("선호 감독의 추천 작품", "관심 작품 감독의 다른 작품", onMovieClick) }
 
     }
 }
 
 // 섹션 하나: 제목 + 부제 + 빈 포스터 자리
 @Composable
-private fun ContentSection(title: String, subtitle: String) {
+private fun ContentSection(title: String, subtitle: String, onMovieClick: (Int) -> Unit) {
     Column(modifier = Modifier.padding(top = 24.dp)) {
         Text(
             text = title,
@@ -169,19 +186,24 @@ private fun ContentSection(title: String, subtitle: String) {
         Spacer(modifier = Modifier.height(12.dp))
         val movieViewModel: MovieViewModel = viewModel()
         val viewState by movieViewModel.movieState
-        PosterPlaceholderRow(movie = viewState.movie)
+        PosterPlaceholderRow(movie = viewState.movie, onMovieClick = onMovieClick)
     }
 }
 
 // 포스터가 들어갈 빈 자리 (가로 스크롤)
 @Composable
-private fun PosterPlaceholderRow(movie: Movie?) {
+private fun PosterPlaceholderRow(movie: Movie?, onMovieClick: (Int) -> Unit) {
     LazyRow(
         contentPadding = PaddingValues(horizontal = 20.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(5) {
-            Column {
+            // 포스터를 누르면 상세 화면으로 이동
+            Column(
+                modifier = Modifier.clickable(enabled = movie != null) {
+                    movie?.let { onMovieClick(it.id) }
+                }
+            ) {
                 // 포스터 자리
                 Box(
                     modifier = Modifier
