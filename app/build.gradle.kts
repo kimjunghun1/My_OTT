@@ -1,3 +1,11 @@
+import java.util.Properties
+
+// local.properties에서 TMDB API 키 읽기 (local.properties는 깃허브에 올라가지 않음)
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use { load(it) }
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,6 +27,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // 코드에서 BuildConfig.TMDB_API_KEY로 사용
+        buildConfigField("String", "TMDB_API_KEY", "\"${localProperties.getProperty("TMDB_API_KEY", "")}\"")
     }
 
     buildTypes {
@@ -39,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true // BuildConfig.TMDB_API_KEY 사용
     }
 }
 

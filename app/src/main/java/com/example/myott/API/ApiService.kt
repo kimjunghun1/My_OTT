@@ -23,4 +23,14 @@ interface ApiService{
         @Query("api_key") apiKey : String, // API 키
         @Query("language") language: String = "ko-KR" // 언어 설정
     ) : Movie
-}
+
+    // 콘텐츠 상세 화면용: 기본 정보 + 출연진/감독(credits) + OTT(watch/providers) + 관람 등급(release_dates)
+    // 요청 URL 예시: movie/640146?api_key=KEY&language=ko-KR&append_to_response=credits,watch/providers,release_dates
+    @GET("movie/{id}")
+    suspend fun getMovieDetail(
+        @Path("id") movieId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "ko-KR",
+        @Query("append_to_response") append: String = "credits,watch/providers,release_dates"
+    ) : MovieDetail
+}

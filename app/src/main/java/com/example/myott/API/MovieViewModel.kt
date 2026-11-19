@@ -4,6 +4,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.State
 import androidx.lifecycle.viewModelScope
+import com.example.myott.BuildConfig
 import kotlinx.coroutines.launch
 
 // TMDB API로부터 영화 데이터를 조회하고 화면 상태를 관리하는 ViewModel
@@ -20,8 +21,8 @@ class MovieViewModel: ViewModel() {
         viewModelScope.launch{
             try{
                 val response = tmdbService.getMovie( // 특정 영화를 가져와서 response에 저장
-                    movieId = 640146, // 영화 id
-                    apiKey = "" // API 키 (절대 복사 금지, 코드 복사나 깃허브에 올릴시 이 부분은 먼저 지우고 할 것)
+                    movieId = 76600, // 영화 id
+                    apiKey = BuildConfig.TMDB_API_KEY // API 키는 local.properties의 TMDB_API_KEY에서 읽음 (깃허브에 안 올라감)
                 )
                 _movieState.value = _movieState.value.copy( // API 호출 성공 시
                     loading = false, // 로딩 종료
