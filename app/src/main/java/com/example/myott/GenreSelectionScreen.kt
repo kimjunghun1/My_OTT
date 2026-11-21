@@ -17,7 +17,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.myott.GenreViewModel
-
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 
 
 // 색상 리스트 수정 편하라고 미리 만들어놈
@@ -38,9 +41,17 @@ val SubTextColor = Color(0xFFAAAAAA)
 
 @Composable
 fun GenreSelectionScreen(
-    // 변경: ViewModel을 전달받음
     genreViewModel: GenreViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+
+    // [추가] 웰컴 화면으로 돌아가기
+    onBack: () -> Unit,
+
+    // [추가] 장르 선택 완료
+    onComplete: () -> Unit,
+
+    // [추가] 건너뛰기 확정
+    onSkip: () -> Unit
 ) {
 
     // 변경 : ViewModel에서 전체 장르 목록을 가져옴
@@ -49,6 +60,16 @@ fun GenreSelectionScreen(
 
     // 추가: 현재 선택된 장르 개수 계산
     val selectedCount = genres.count { it.isSelected }
+
+    // [추가] 건너뛰기 확인창 표시 여부
+    var showSkipDialog by remember {
+        mutableStateOf(false)
+    }
+
+    // [추가] 휴대폰 자체 뒤로가기 버튼 처리
+    BackHandler {
+        onBack()
+    }
 
     // 추가: 기존 화면의 장르 배치 순서 유지
     // DB에 저장된 genreId와 비교하여 장르의 순서를 정함
@@ -95,7 +116,7 @@ fun GenreSelectionScreen(
                 color = TextColor,
                 fontSize = 30.sp,
                 modifier = Modifier.clickable {
-                    // 이전 화면 미구현 이슈
+                    onBack()
                 }
             )
 
@@ -114,7 +135,55 @@ fun GenreSelectionScreen(
                 fontSize = 13.sp,
 
                 modifier = Modifier.clickable {
-                    // 다음 화면 미구현 이슈
+                    showSkipDialog = true
+                }
+            )
+        }
+
+        // [추가] 건너뛰기 확인 대화상자
+        if (showSkipDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showSkipDialog = false
+                },
+
+                title = {
+                    Text(text = "장르 선택 건너뛰기")
+                },
+
+                text = {
+                    Text(text = "장르 선택을 건너뛰고 메인 화면으로 이동할까요?")
+                },
+
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            showSkipDialog = false
+
+                            // [추가] 선택했던 모든 장르의 선택 상태 초기화
+                            genres.forEach { genre ->
+                                genreViewModel.updateGenreSelection(
+                                    genre.genreId,
+                                    false
+                                )
+                            }
+
+                            // 메인 화면으로 이동
+                            onSkip()
+                        }
+                    ) {
+                        Text("확인")
+                    }
+                },
+
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            showSkipDialog = false
+                        }
+                    ) {
+                        Text("취소")
+                    }
                 }
             )
         }
@@ -227,7 +296,8 @@ fun GenreSelectionScreen(
         // 다음 화면 이동 버튼
         Button(
             // 다음화면이 없어 아직 미구현, 기능 추가
-            onClick = {  },
+            onClick = { onComplete() },
+            enabled = selectedCount > 0,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
