@@ -33,4 +33,33 @@ interface ApiService{
         @Query("language") language: String = "ko-KR",
         @Query("append_to_response") append: String = "credits,watch/providers,release_dates"
     ) : MovieDetail
-}
+
+    //주간 인기 프로그램을 받아옴 (영화, Tv 프로그램)
+    //mediaType에 "movie"를 넣으면 주간 인기 영화, "tv"를 넣으면 주간 인기 TV 프로그램
+    @GET("trending/{mediaType}/week")
+    suspend fun getWeeklyTrending(
+        @Path("mediaType") mediaType: String,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "ko-KR"
+    ): MovieResponse
+
+    // 검색어 없이 카테고리로 검색합니다. mediaType은 "movie" 또는 "tv"입니다.
+    @GET("discover/{mediaType}")
+    suspend fun discoverContents(
+        @Path("mediaType") mediaType: String,
+        @Query("api_key") apiKey: String,
+        @Query("with_genres") genres: String?,
+        @Query("page") page: Int,
+        @Query("language") language: String = "ko-KR"
+    ): MovieResponse
+
+    // 사용자가 입력한 제목으로 영화 또는 TV 프로그램을 검색합니다.
+    @GET("search/{mediaType}")
+    suspend fun searchByTitle(
+        @Path("mediaType") mediaType: String,
+        @Query("api_key") apiKey: String,
+        @Query("query") query: String,
+        @Query("page") page: Int,
+        @Query("language") language: String = "ko-KR"
+    ): MovieResponse
+}
