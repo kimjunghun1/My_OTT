@@ -53,6 +53,11 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.myott.API.Movie
 import com.example.myott.API.MovieViewModel
 import com.example.myott.detail.ContentDetailScreen
+import androidx.compose.ui.platform.LocalContext
+import com.example.myott.AppContainer
+import com.example.myott.GenreViewModel
+import com.example.myott.WelcomeScreen
+import com.example.myapplication.GenreSelectionScreen
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
@@ -81,51 +86,121 @@ fun MainScreen(
     // 상세 화면을 보고 있는 콘텐츠 id (null이면 상세 화면 닫힘)
     var detailMovieId by rememberSaveable { mutableStateOf<Int?>(null) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(MainBackground)
-    ) {
-        // 탭 내용
-        Box(modifier = Modifier.weight(1f)) {
-            val movieId = detailMovieId
-            if (movieId != null) {
-                // 콘텐츠 상세 화면 (휴대폰 뒤로가기 / 화면의 뒤로가기 버튼으로 닫힘)
-                BackHandler { detailMovieId = null }
-                ContentDetailScreen(
-                    movieId = movieId,
-                    onBack = { detailMovieId = null }
-                )
-            } else when (MainTab.entries[selectedTab]) {
-                MainTab.HOME -> HomeTab(onMovieClick = { detailMovieId = it })
-                MainTab.SEARCH -> SearchScreen() // TODO: 검색 화면 연결
-                MainTab.INTEREST -> FavoriteScreen()// TODO: 관심 화면 연결
-                MainTab.MY_PAGE -> MyPageScreen()
-            }
-        }
+    // [추가] SharedPreferences로 최초 실행 여부 확인
+    val context = LocalContext.current
 
-        // 하단 탭 바
-        NavigationBar(
-            containerColor = MainCard,
-            windowInsets = WindowInsets(0, 0, 0, 0) // MainActivity의 Scaffold가 이미 여백을 처리함
+    val prefs = context.getSharedPreferences(
+        "myott_preferences",
+        android.content.Context.MODE_PRIVATE
+    )
+
+    // [추가] 최초 실행 여부에 따라 첫 화면 결정
+    var currentScreen by rememberSaveable {
+        mutableStateOf(
+            if (prefs.getBoolean("first_launch_completed", false)) {
+                "MAIN"
+            } else {
+                "WELCOME"
+            }
+        )
+    }
+
+    // [추가] 장르 선택 화면에서 사용할 ViewModel
+    val appContainer = context.applicationContext as AppContainer
+
+    val genreViewModel: GenreViewModel = viewModel(
+        factory = appContainer.genreViewModelFactory
+    )
+
+    // [추가] 최초 실행 화면 분기
+    if (currentScreen == "WELCOME") {
+
+        // [추가] 웰컴 화면
+        WelcomeScreen(
+            onStartClick = {
+                currentScreen = "GENRE"
+            },
+            modifier = modifier
+        )
+
+    } else if (currentScreen == "GENRE") {
+
+        // [추가] 장르 선택 화면
+        GenreSelectionScreen(
+            genreViewModel = genreViewModel,
+            modifier = modifier,
+
+            // [추가] 뒤로가기: 웰컴 화면으로 이동
+            onBack = {
+                currentScreen = "WELCOME"
+            },
+
+            // [추가] 장르 선택 완료: 메인 화면으로 이동
+            onComplete = {
+                prefs.edit()
+                    .putBoolean("first_launch_completed", true)
+                    .apply()
+
+                currentScreen = "MAIN"
+            },
+
+            // [추가] 건너뛰기 확인: 메인 화면으로 이동
+            onSkip = {
+                prefs.edit()
+                    .putBoolean("first_launch_completed", true)
+                    .apply()
+
+                currentScreen = "MAIN"
+            }
+        )
+
+    } else {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .background(MainBackground)
         ) {
-            MainTab.entries.forEach { tab ->
-                NavigationBarItem(
-                    selected = selectedTab == tab.ordinal,
-                    onClick = {
-                        selectedTab = tab.ordinal
-                        detailMovieId = null // 탭을 누르면 상세 화면 닫기
-                    },
-                    icon = { Icon(tab.icon, contentDescription = tab.label) },
-                    label = { Text(tab.label) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MainText,
-                        selectedTextColor = MainPurple,
-                        indicatorColor = MainPurple,
-                        unselectedIconColor = MainSubText,
-                        unselectedTextColor = MainSubText
+            // 탭 내용
+            Box(modifier = Modifier.weight(1f)) {
+                val movieId = detailMovieId
+                if (movieId != null) {
+                    // 콘텐츠 상세 화면 (휴대폰 뒤로가기 / 화면의 뒤로가기 버튼으로 닫힘)
+                    BackHandler { detailMovieId = null }
+                    ContentDetailScreen(
+                        movieId = movieId,
+                        onBack = { detailMovieId = null }
                     )
-                )
+                } else when (MainTab.entries[selectedTab]) {
+                    MainTab.HOME -> HomeTab(onMovieClick = { detailMovieId = it })
+                    MainTab.SEARCH -> SearchScreen() // TODO: 검색 화면 연결
+                    MainTab.INTEREST -> FavoriteScreen()// TODO: 관심 화면 연결
+                    MainTab.MY_PAGE -> MyPageScreen()
+                }
+            }
+
+            // 하단 탭 바
+            NavigationBar(
+                containerColor = MainCard,
+                windowInsets = WindowInsets(0, 0, 0, 0) // MainActivity의 Scaffold가 이미 여백을 처리함
+            ) {
+                MainTab.entries.forEach { tab ->
+                    NavigationBarItem(
+                        selected = selectedTab == tab.ordinal,
+                        onClick = {
+                            selectedTab = tab.ordinal
+                            detailMovieId = null // 탭을 누르면 상세 화면 닫기
+                        },
+                        icon = { Icon(tab.icon, contentDescription = tab.label) },
+                        label = { Text(tab.label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MainText,
+                            selectedTextColor = MainPurple,
+                            indicatorColor = MainPurple,
+                            unselectedIconColor = MainSubText,
+                            unselectedTextColor = MainSubText
+                        )
+                    )
+                }
             }
         }
     }
