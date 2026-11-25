@@ -28,6 +28,7 @@ data class DetailUiState(
 // - 관심 있음 / 관심 없음 / OTT 보러가기를 누르면 점수를 기록한다.
 class ContentDetailViewModel(
     private val movieId: Int,
+    private val mediaType: String = "movie",
     private val repository: ContentScoreRepository,
 ) : ViewModel() {
 
@@ -54,11 +55,19 @@ class ContentDetailViewModel(
                 return@launch
             }
             try {
-                val detail = tmdbService.getMovieDetail(
-                    movieId = movieId,
-                    apiKey = BuildConfig.TMDB_API_KEY
-                )
+                val detail = if (mediaType == "tv") {
+                    tmdbService.getTvDetail(
+                        tvId = movieId,
+                        apiKey = BuildConfig.TMDB_API_KEY
+                    )
+                } else {
+                    tmdbService.getMovieDetail(
+                        movieId = movieId,
+                        apiKey = BuildConfig.TMDB_API_KEY
+                    )
+                }
                 _uiState.value = DetailUiState(loading = false, detail = detail)
+                repository.recordDetailView(detail.genres.orEmpty())
             } catch (e: Exception) {
                 _uiState.value = DetailUiState(
                     loading = false,
@@ -92,6 +101,7 @@ class ContentDetailViewModel(
         val detail = _uiState.value.detail ?: return null
         return ContentInfo(
             movieId = detail.id,
+            mediaType = mediaType,
             title = detail.title ?: detail.original_title.orEmpty(),
             posterPath = detail.poster_path,
             genres = detail.genres.orEmpty()
@@ -99,9 +109,13 @@ class ContentDetailViewModel(
     }
 
     companion object {
-        fun factory(movieId: Int, repository: ContentScoreRepository): ViewModelProvider.Factory =
+        fun factory(
+            movieId: Int,
+            mediaType: String = "movie",
+            repository: ContentScoreRepository
+        ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { ContentDetailViewModel(movieId, repository) }
+                initializer { ContentDetailViewModel(movieId, mediaType, repository) }
             }
     }
 }

@@ -2,41 +2,66 @@ package com.example.myott
 
 import com.example.genreapp.data.GenreDao
 import com.example.genreapp.data.PreferredGenre
+import com.example.myott.API.tmdbService
 import kotlinx.coroutines.flow.Flow
 
-// 앱에서 회원이 등록한 정보를 어떻게 가져오고 저장할지 관리(Dao에서 만들어놓은 함수들을 사용한다.)
-class GenreRepository(private val genreDao: GenreDao) { // Repository는 UI와 Dao 사이에 있기 때문에 GenreDao를 외부에서 전달받음
+class GenreRepository(private val genreDao: GenreDao) {
     val selectedGenres: Flow<List<PreferredGenre>> = genreDao.getSelectedGenres()
-    // genreDao의 getSelectedGenres 함수를 호출해 선택된 장르들의 목록을 지속적으로 관찰
+    val allGenres: Flow<List<PreferredGenre>> = genreDao.getAllGenres()
 
-    // 전체 장르 목록
-    val allGenres: Flow<List<PreferredGenre>> =
-        genreDao.getAllGenres()
+    // TMDB에서 한국어 번역이 누락되어 영어로 내려오는 장르 ID 보정 맵
+    private val koreanGenreNameMap = mapOf(
+        10759 to "액션·모험",   // Action & Adventure
+        10762 to "어린이",      // Kids
+        10763 to "뉴스",        // News
+        10764 to "리얼리티",    // Reality
+        10765 to "SF·판타지",   // Sci-Fi & Fantasy
+        10766 to "소프 오페라", // Soap
+        10767 to "토크쇼",      // Talk
+        10768 to "전쟁·정치"    // War & Politics
+    )
 
-    // 기본 장르 12개 저장
-    suspend fun saveDefaultGenres() {
+    // TMDB API에서 영화와 TV 장르 목록을 불러와 한국어로 보정 후 DB에 저장
+    suspend fun fetchAndSaveTmdbGenres() {
+        val apiKey = BuildConfig.TMDB_API_KEY
+        val fetchedGenres = try {
+            val movieGenres = tmdbService.getGenreList("movie", apiKey).genres
+            val tvGenres = tmdbService.getGenreList("tv", apiKey).genres
 
-        val defaultGenres = listOf(
-            PreferredGenre("SF", "SF", false),
-            PreferredGenre("Noir", "느와르", false),
-            PreferredGenre("ACTION", "액션", false),
-            PreferredGenre("HORROR", "공포", false),
-            PreferredGenre("COMEDY", "코미디", false),
-            PreferredGenre("FANTASY", "판타지", false),
-            PreferredGenre("ROMANCE", "로맨스", false),
-            PreferredGenre("HISTORY", "역사", false),
-            PreferredGenre("MUSICAL", "뮤지컬", false),
-            PreferredGenre("MYSTERY", "미스터리", false),
-            PreferredGenre("ANIMATION", "애니메이션", false),
-            PreferredGenre("DOCUMENTARY", "다큐멘터리", false)
-        )
+            (movieGenres + tvGenres)
+                .distinctBy { it.id }
+                .filter { !it.name.isNullOrBlank() }
+                .map { tmdbGenre ->
+                    // 보정 맵에 있으면 한국어 이름을 사용하고, 없으면 서버에서 받은 이름 사용
+                    val localizedName = koreanGenreNameMap[tmdbGenre.id] ?: tmdbGenre.name!!
+                    PreferredGenre(
+                        genreId = tmdbGenre.id,
+                        genreName = localizedName,
+                        isSelected = false
+                    )
+                }
+        } catch (e: Exception) {
+            listOf(
+                PreferredGenre(28, "액션", false),
+                PreferredGenre(16, "애니메이션", false),
+                PreferredGenre(35, "코미디", false),
+                PreferredGenre(80, "범죄", false),
+                PreferredGenre(99, "다큐멘터리", false),
+                PreferredGenre(18, "드라마", false),
+                PreferredGenre(14, "판타지", false),
+                PreferredGenre(27, "공포", false),
+                PreferredGenre(9648, "미스터리", false),
+                PreferredGenre(10749, "로맨스", false),
+                PreferredGenre(878, "SF", false),
+                PreferredGenre(53, "스릴러", false)
+            )
+        }
 
-        genreDao.insertDefaultGenres(defaultGenres)
+        genreDao.insertDefaultGenres(fetchedGenres)
     }
 
-    // 사용자가 선택한 장르의 상태 변경
     suspend fun updateGenreSelection(
-        genreId: String,
+        genreId: Int,
         selected: Boolean
     ) {
         genreDao.updateGenreSelection(genreId, selected)

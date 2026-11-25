@@ -34,6 +34,14 @@ interface ApiService{
         @Query("append_to_response") append: String = "credits,watch/providers,release_dates"
     ) : MovieDetail
 
+    @GET("tv/{id}")
+    suspend fun getTvDetail(
+        @Path("id") tvId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "ko-KR",
+        @Query("append_to_response") append: String = "credits,watch/providers,content_ratings"
+    ) : MovieDetail
+
     //주간 인기 프로그램을 받아옴 (영화, Tv 프로그램)
     //mediaType에 "movie"를 넣으면 주간 인기 영화, "tv"를 넣으면 주간 인기 TV 프로그램
     @GET("trending/{mediaType}/week")
@@ -62,4 +70,17 @@ interface ApiService{
         @Query("page") page: Int,
         @Query("language") language: String = "ko-KR"
     ): MovieResponse
+
+    // ApiService.kt 파일 하단 또는 데이터 클래스 모음에 추가
+    data class GenreListResponse(
+        val genres: List<TmdbGenre>
+    )
+
+    // ApiService 인터페이스 내부에 추가
+    @GET("genre/{mediaType}/list")
+    suspend fun getGenreList(
+        @Path("mediaType") mediaType: String, // "movie" 또는 "tv"
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "ko-KR"
+    ): GenreListResponse
 }

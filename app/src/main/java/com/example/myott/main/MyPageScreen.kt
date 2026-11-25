@@ -223,25 +223,3 @@ private fun LegendRow(ratio: GenreRatio) {
     }
 }
 
-// ---------------- Android Studio 미리보기용 (앱 실행과는 무관) ----------------
-
-// 실제 앱과 같은 상태: 기록 없음
-@Preview(name = "기록 없음", showBackground = true, backgroundColor = 0xFF121212, heightDp = 800)
-@Composable
-private fun MyPageScreenEmptyPreview() {
-    MyPageScreen()
-}
-
-// 그래프 모양 확인용 예시 (미리보기 창에서만 보이고 앱에는 들어가지 않음)
-@Preview(name = "그래프 예시", showBackground = true, backgroundColor = 0xFF121212, heightDp = 800)
-@Composable
-private fun MyPageScreenSamplePreview() {
-    MyPageScreen(
-        genreRatios = listOf(
-            GenreRatio("애니메이션", 45f, GenreChartColors[0]),
-            GenreRatio("로맨스", 25f, GenreChartColors[1]),
-            GenreRatio("SF", 20f, GenreChartColors[2]),
-            GenreRatio("기타", 10f, GenreChartColors[5]),
-        )
-    )
-}
