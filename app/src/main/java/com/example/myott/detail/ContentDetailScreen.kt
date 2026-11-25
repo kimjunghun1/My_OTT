@@ -79,14 +79,15 @@ private const val TMDB_IMAGE_URL = "https://image.tmdb.org/t/p/"
 @Composable
 fun ContentDetailScreen(
     movieId: Int,
+    mediaType: String = "movie",
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as AppContainer
     val viewModel: ContentDetailViewModel = viewModel(
-        key = "detail_$movieId", // 콘텐츠마다 따로 만들기
-        factory = ContentDetailViewModel.factory(movieId, app.contentScoreRepository)
+        key = "detail_${mediaType}_$movieId",
+        factory = ContentDetailViewModel.factory(movieId, mediaType, app.contentScoreRepository)
     )
     val uiState by viewModel.uiState.collectAsState()
     val record by viewModel.record.collectAsState()

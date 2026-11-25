@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MyOTTTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    MainScreen(modifier = Modifier.padding(innerPadding)
+                    MainScreen(modifier = Modifier.padding(innerPadding) // 메인 화면을 나타내는 MainScreen() 메서드 호출
                     )
                 }
             }

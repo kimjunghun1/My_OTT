@@ -6,14 +6,16 @@ import kotlinx.coroutines.flow.Flow
 // 사용자 행동별 장르 점수 (알고리즘: 관심 있음 > OTT 보러가기 > 검색 결과 선택)
 // 숫자만 바꾸면 가중치 조정 가능
 object ScoreWeights {
-    const val INTEREST = 3      // 관심 있음
-    const val OTT_CLICK = 2     // OTT 보러가기
-    const val SEARCH_SELECT = 1 // 검색 결과에서 콘텐츠 선택
+    const val INTEREST = 3      // 관심 있음: 3점
+    const val SEARCH_GENRE = 2  // 검색 화면 카테고리 검색: 2점
+    const val DETAIL_VIEW = 1   // 상세 페이지 진입: 1점
+    const val OTT_CLICK = 2     // (기존 마이페이지 그래프용 유지)
 }
 
 // 점수 계산에 필요한 콘텐츠 기본 정보
 data class ContentInfo(
     val movieId: Int,
+    val mediaType: String = "movie",
     val title: String,
     val posterPath: String?,
     val genres: List<TmdbGenre>,
@@ -78,22 +80,33 @@ class ContentScoreRepository(private val dao: ContentScoreDao) {
         )
     }
 
-    // 검색 결과에서 콘텐츠를 선택했을 때 (검색 화면 담당 팀원이 호출)
-    suspend fun recordSearchSelect(info: ContentInfo) {
-        val record = getOrCreate(info)
-        addGenreScore(info.genres, ScoreWeights.SEARCH_SELECT)
-        dao.saveRecord(
-            record.copy(
-                searchSelectCount = record.searchSelectCount + 1,
-                updatedAt = System.currentTimeMillis()
-            )
-        )
+    // 1. 상세 페이지 진입 시 해당 콘텐츠의 장르들에 1점 부여
+    suspend fun recordDetailView(genres: List<TmdbGenre>) {
+        addGenreScore(genres, ScoreWeights.DETAIL_VIEW)
     }
+
+    // 2. 검색 화면에서 카테고리로 검색 시 선택한 장르들에 2점 부여
+    suspend fun recordSearchGenres(genres: List<TmdbGenre>) {
+        addGenreScore(genres, ScoreWeights.SEARCH_GENRE)
+    }
+
+//    // 검색 결과에서 콘텐츠를 선택했을 때 (검색 화면 담당 팀원이 호출)
+//    suspend fun recordSearchSelect(info: ContentInfo) {
+//        val record = getOrCreate(info)
+//        addGenreScore(info.genres, ScoreWeights.SEARCH_SELECT)
+//        dao.saveRecord(
+//            record.copy(
+//                searchSelectCount = record.searchSelectCount + 1,
+//                updatedAt = System.currentTimeMillis()
+//            )
+//        )
+//    }
 
     // 기록이 없으면 새로 만든다 (저장은 호출한 쪽에서)
     private suspend fun getOrCreate(info: ContentInfo): ContentRecord {
         return dao.getRecord(info.movieId) ?: ContentRecord(
             movieId = info.movieId,
+            mediaType = info.mediaType,
             title = info.title,
             posterPath = info.posterPath,
             genreIds = info.genres.joinToString(",") { it.id.toString() },

@@ -15,7 +15,7 @@ import com.example.myott.detail.GenreScore
         GenreScore::class,     // 장르별 점수 (추천 알고리즘)
         ContentRecord::class,  // 콘텐츠별 관심 있음/없음, OTT 보러가기 기록
     ],
-    version = 3, // 점수 테이블 추가로 버전 올림 (예전에 2까지 쓰인 적이 있어 3으로)
+    version = 5, // 점수 테이블 추가로 버전 올림
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

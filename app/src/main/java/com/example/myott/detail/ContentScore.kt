@@ -30,6 +30,7 @@ data class GenreScore(
 data class ContentRecord(
     @PrimaryKey
     val movieId: Int,
+    val mediaType: String = "movie",
     val title: String,
     val posterPath: String?,
     val genreIds: String,           // 장르 id들을 쉼표로 저장 (예: "28,878")
