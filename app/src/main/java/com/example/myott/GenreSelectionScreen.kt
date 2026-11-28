@@ -86,35 +86,6 @@ fun GenreSelectionScreen(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
-            Text(
-                text = "건너뛰기",
-                color = SubTextColor,
-                fontSize = 13.sp,
-                modifier = Modifier.clickable { showSkipDialog = true }
-            )
-        }
-
-        // 건너뛰기 확인 대화상자
-        if (showSkipDialog) {
-            AlertDialog(
-                onDismissRequest = { showSkipDialog = false },
-                title = { Text(text = "장르 선택 건너뛰기") },
-                text = { Text(text = "장르 선택을 건너뛰고 메인 화면으로 이동할까요?") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            showSkipDialog = false
-                            genres.forEach { genre ->
-                                genreViewModel.updateGenreSelection(genre.genreId, false)
-                            }
-                            onSkip()
-                        }
-                    ) { Text("확인") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showSkipDialog = false }) { Text("취소") }
-                }
-            )
         }
 
         Spacer(modifier = Modifier.height(28.dp))

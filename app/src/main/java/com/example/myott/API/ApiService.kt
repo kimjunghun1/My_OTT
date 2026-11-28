@@ -71,6 +71,22 @@ interface ApiService{
         @Query("language") language: String = "ko-KR"
     ): MovieResponse
 
+    // 추가 인물별 영화 작품 조회
+    @GET("person/{person_id}/movie_credits")
+    suspend fun getPersonMovieCredits(
+        @Path("person_id") personId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "ko-KR"
+    ): PersonMovieCreditsResponse
+
+    // 추가 인물별 TV 작품 조회
+    @GET("person/{person_id}/tv_credits")
+    suspend fun getPersonTvCredits(
+        @Path("person_id") personId: Int,
+        @Query("api_key") apiKey: String,
+        @Query("language") language: String = "ko-KR"
+    ): PersonTvCreditsResponse
+
     // ApiService.kt 파일 하단 또는 데이터 클래스 모음에 추가
     data class GenreListResponse(
         val genres: List<TmdbGenre>

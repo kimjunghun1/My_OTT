@@ -9,6 +9,7 @@ import com.example.myott.API.MovieDetail
 import com.example.myott.API.Provider
 import com.example.myott.API.tmdbService
 import com.example.myott.BuildConfig
+import com.example.myott.PersonRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,7 @@ class ContentDetailViewModel(
     private val movieId: Int,
     private val mediaType: String = "movie",
     private val repository: ContentScoreRepository,
+    private val personRepository: PersonRepository, // 추가
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DetailUiState())
@@ -68,6 +70,10 @@ class ContentDetailViewModel(
                 }
                 _uiState.value = DetailUiState(loading = false, detail = detail)
                 repository.recordDetailView(detail.genres.orEmpty())
+
+                // 추가 기능: 상세페이지 진입 시 감독과 배우 등록
+                personRepository.registerPeople(detail.credits)
+
             } catch (e: Exception) {
                 _uiState.value = DetailUiState(
                     loading = false,
@@ -112,10 +118,11 @@ class ContentDetailViewModel(
         fun factory(
             movieId: Int,
             mediaType: String = "movie",
-            repository: ContentScoreRepository
+            repository: ContentScoreRepository,
+            personRepository: PersonRepository, // 추가
         ): ViewModelProvider.Factory =
             viewModelFactory {
-                initializer { ContentDetailViewModel(movieId, mediaType, repository) }
+                initializer { ContentDetailViewModel(movieId, mediaType, repository, personRepository) }
             }
     }
 }

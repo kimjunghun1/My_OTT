@@ -3,6 +3,7 @@ package com.example.myott
 import android.app.Application
 import com.example.genreapp.data.AppDatabase
 import com.example.myott.detail.ContentScoreRepository
+import com.example.myott.main.PersonRecommendationViewModel
 
 // 앱 전체에서 공통으로 사용하는 핵심 객체들을 한 곳에 모아서 생성하고 관리함
 class AppContainer : Application() { // Application 클래스: 가장 먼저 생성되어 앱이 완전히 종료될 때까지 살아있는 최상위 객체
@@ -22,6 +23,16 @@ class AppContainer : Application() { // Application 클래스: 가장 먼저 생
         ContentScoreRepository(database.contentScoreDao())
     }
 
+    // 추가: 감독과 배우 정보 Repository
+    val personRepository by lazy {
+        PersonRepository(database.personDao())
+    }
+
+    // 추가: 배우 및 감독 추천 작품 Repository
+    val personRecommendationRepository by lazy {
+        PersonRecommendationRepository(personRepository)
+    }
+
     // ViewModel Factory 생성
     val genreViewModelFactory by lazy {
         GenreViewModelFactory(genreRepository)
@@ -30,4 +41,13 @@ class AppContainer : Application() { // Application 클래스: 가장 먼저 생
     val recommendationRepository by lazy {
         RecommendationRepository(genreRepository, contentScoreRepository) // RecommendationRepository 부름
     }
+
+    // 추가: 배우 및 감독 추천 ViewModel Factory
+    val personRecommendationViewModelFactory by lazy {
+        PersonRecommendationViewModel.factory(
+            personRecommendationRepository
+        )
+    }
+
+
 }
