@@ -37,6 +37,7 @@ import com.example.myott.API.Movie
 import com.example.myott.API.tmdbService
 import com.example.myott.BuildConfig
 import kotlinx.coroutines.CancellationException
+import androidx.compose.foundation.lazy.rememberLazyListState
 import kotlinx.coroutines.launch
 
 
@@ -143,36 +144,86 @@ fun SearchScreen(
     var activeSearch by remember { mutableStateOf<ContentSearch?>(null) }
     // 같은 조건으로 다시 눌러도 검색을 한 번 더 실행하기 위한 번호입니다.
     var searchNumber by remember { mutableIntStateOf(0) }
+    // 현재 목록에서 어떤 행이 화면에 보이는지 확인합니다.
+    val listState = rememberLazyListState()
+
+    // 추가할 작품이 있을 때만 목록 맨 아래에 로딩 행을 표시합니다.
+    var hasMore by remember { mutableStateOf(false) }
+
+    // 추가 로딩 오류는 첫 검색 오류와 구분해 기존 목록이 사라지지 않게 합니다.
+    var appendError by remember { mutableStateOf(false) }
+    var retryNumber by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(searchNumber) {
+        val currentSearchNumber = searchNumber
+        val search = activeSearch
+
+        // 초기 인기 목록에서 첫 10편을 보여주고 남은 작품입니다.
+        var popularRemaining = emptyList<Movie>()
+
         isLoading = true
         loadError = null
+        appendError = false
+        hasMore = false
 
         try {
-            val search = activeSearch
+            // 검색 버튼을 눌러 목록을 교체할 때만 맨 위로 이동합니다.
+            listState.scrollToItem(0)
 
             if (search == null) {
-                // 첫 진입에는 현재 구현한 주간 인기 영화·TV 10편을 표시합니다.
                 val apiKey = BuildConfig.TMDB_API_KEY
                 val movies = tmdbService.getWeeklyTrending("movie", apiKey)
                     .results.distinctBy { it.id }.map { it.copy(mediaType = "movie") }.shuffled()
                 val tvShows = tmdbService.getWeeklyTrending("tv", apiKey)
                     .results.distinctBy { it.id }.map { it.copy(mediaType = "tv") }.shuffled()
 
+                // 첫 화면에는 기존처럼 영화와 TV를 각각 한 편씩 우선 포함합니다.
                 val firstPicks = movies.take(1) + tvShows.take(1)
-                val remaining = (movies.drop(1) + tvShows.drop(1)).shuffled()
-                trendingItems = (firstPicks + remaining.take(10 - firstPicks.size)).shuffled()
+                val others = (movies.drop(1) + tvShows.drop(1)).shuffled()
+                val slots = 10 - firstPicks.size
+
+                trendingItems = (firstPicks + others.take(slots)).shuffled()
+                popularRemaining = others.drop(slots)
+                hasMore = popularRemaining.isNotEmpty()
             } else {
-                // 검색 버튼을 누른 뒤에는 제출한 조건에 맞는 다음 작품들을 표시합니다.
+                // 검색 버튼으로 받은 결과는 기존 목록을 교체합니다.
                 trendingItems = search.nextBatch()
+                hasMore = search.hasMore
             }
-            isLoading = false
         } catch (e: CancellationException) {
-            // 새 검색이 시작되거나 탭을 떠나면 진행 중인 요청을 취소합니다.
             throw e
         } catch (e: Exception) {
             loadError = "콘텐츠를 불러오지 못했어요. 다시 검색해 주세요."
-            isLoading = false
+        }
+
+        isLoading = false
+        if (loadError != null || !hasMore) return@LaunchedEffect
+
+        // 맨 아래의 로딩 행이 화면에 들어오면 다음 묶음을 가져옵니다.
+        snapshotFlow {
+            val lastVisibleKey = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.key
+            lastVisibleKey to retryNumber
+        }.collect { (lastVisibleKey, _) ->
+            val footerKey = "more-$currentSearchNumber-${trendingItems.size}"
+            if (!hasMore || appendError || lastVisibleKey != footerKey) return@collect
+
+            try {
+                val nextItems = if (search == null) {
+                    val batch = popularRemaining.take(10)
+                    popularRemaining = popularRemaining.drop(batch.size)
+                    batch
+                } else {
+                    search.nextBatch()
+                }
+
+                // 스크롤로 받은 결과는 기존 목록 아래에 이어 붙입니다.
+                trendingItems = trendingItems + nextItems
+                hasMore = search?.hasMore ?: popularRemaining.isNotEmpty()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                appendError = true
+            }
         }
     }
 
@@ -299,6 +350,7 @@ fun SearchScreen(
                 )
                 // 검색창 아래에 남은 공간을 사용하고, 결과 목록만 세로로 스크롤합니다.
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
@@ -320,14 +372,38 @@ fun SearchScreen(
                             }
                             Text(text = message, color = MainSubText)
                         }
-                        else -> items(trendingItems) { content ->
-                            SearchResultRow(
-                                content = content,
-                                onClick = {
-                                    val type = content.mediaType ?: if (selectedType == "TV 프로그램") "tv" else "movie"
-                                    onMovieClick(content.id, type)
+                        else -> {
+                            items(trendingItems) { content ->
+                                SearchResultRow(
+                                    content = content,
+                                    onClick = { onMovieClick(content.id, content.mediaType) }
+                                )
+                            }
+
+                            if (hasMore) {
+                                // 검색 번호와 작품 수로 현재 목록의 마지막 행을 구별합니다.
+                                item(key = "more-$searchNumber-${trendingItems.size}") {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (appendError) {
+                                            TextButton(
+                                                onClick = {
+                                                    appendError = false
+                                                    retryNumber++
+                                                }
+                                            ) {
+                                                Text("다음 작품을 불러오지 못했어요. 다시 시도")
+                                            }
+                                        } else {
+                                            CircularProgressIndicator()
+                                        }
+                                    }
                                 }
-                            )
+                            }
                         }
                     }
                 }
@@ -364,6 +440,10 @@ private class ContentSearch(val query: ContentQuery) {
     // 유형별 다음 페이지. 마지막 페이지까지 읽은 유형은 여기서 제거.
     private val nextPages = types.associateWith { 1 }.toMutableMap()
     private val remaining = mutableListOf<Movie>()
+
+    // 이미 받아 둔 후보가 있거나 TMDB에서 더 조회할 페이지가 있으면 true입니다.
+    val hasMore: Boolean
+        get() = remaining.isNotEmpty() || nextPages.isNotEmpty()
 
     // 영화와 TV에 같은 숫자 ID가 있을 수 있으므로 유형도 함께 기록.
     private val collected = mutableSetOf<Pair<String, Int>>()

@@ -58,10 +58,6 @@ import com.example.myott.WelcomeScreen
 import com.example.myott.detail.ContentDetailScreen
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
-import com.example.myott.AppContainer
-import com.example.myott.GenreViewModel
-import com.example.myott.WelcomeScreen
-import com.example.myapplication.GenreSelectionScreen
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
