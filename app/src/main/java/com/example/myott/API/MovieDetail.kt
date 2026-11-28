@@ -6,11 +6,18 @@ import com.google.gson.annotations.SerializedName
 // Gson은 값이 없으면 null을 넣기 때문에 모두 nullable로 둔다.
 data class MovieDetail(
     val id: Int,
+
+    @SerializedName(value = "title", alternate = ["name"])
     val title: String?,                  // 한국어 제목
+
+    @SerializedName(value = "original_title", alternate = ["original_name"])
     val original_title: String?,         // 원제
+
     val overview: String?,               // 줄거리(개요)
     val poster_path: String?,            // 포스터 이미지 경로
     val backdrop_path: String?,          // 가로 배경 이미지 경로
+
+    @SerializedName(value = "release_date", alternate = ["first_air_date"])
     val release_date: String?,           // 개봉일 (예: "2024-05-01")
     val runtime: Int?,                   // 상영 시간(분)
     val vote_average: Double?,           // 평점 (10점 만점)
@@ -70,4 +77,12 @@ data class CountryReleaseDates(
 
 data class ReleaseDate(
     val certification: String?, // 관람 등급 (예: "15", "12", "All")
+)
+
+data class ContentRatingsResponse(
+    val results: List<CountryContentRating>?,
+)
+
+data class CountryContentRating(
+    val iso_3166_1: String? // 나라 코드 (예: "KR")
 )

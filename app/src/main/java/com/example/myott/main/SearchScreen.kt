@@ -20,6 +20,7 @@ import com.example.myott.ui.theme.MyOTTTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Menu
@@ -39,11 +40,9 @@ import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.lazy.rememberLazyListState
 import kotlinx.coroutines.launch
 
-// OTT 유형 제한을 해제할 때 사용하는 선택지
-private const val ALL_TYPES = "전체"
 
 // 카테고리 창에 표시할 콘텐츠 유형. 목록에 적힌 순서대로 표시
-private val ContentsTypes = listOf(ALL_TYPES, "영화","TV 프로그램")
+private val ContentsTypes = listOf("영화","TV 프로그램")
 
 // 영화와 TV에서 같은 ID를 사용하는 장르입니다.
 // 콘텐츠 유형이 '전체'이면 이 장르들만 표시합니다.
@@ -115,12 +114,19 @@ private val MainSubText = Color(0xFFAAAAAA)
 @Composable
 fun SearchScreen(
     modifier: Modifier = Modifier,
+    onMovieClick: (id: Int, mediaType: String) -> Unit = { _, _ -> },
     onSearch: (query: String, type: String?, genres: List<String>) -> Unit = { _, _, _ -> }
 ) {
+    // SearchScreen Composable 상단 (focusManager 선언 아래쪽)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scoreRepository = remember {
+        (context.applicationContext as com.example.myott.AppContainer).contentScoreRepository
+    }
+    val coroutineScope = rememberCoroutineScope()
     //입력창에 표시할 검색어, remeeberSaveable을 사용해 화면 회전 후에도 입력값을 복원함
     var query by rememberSaveable { mutableStateOf("") }
     //선택한 OTT유형
-    var selectedType by rememberSaveable { mutableStateOf(ALL_TYPES) }
+    var selectedType by rememberSaveable { mutableStateOf("영화") }
     //선택한 장르
     var selectedGenres by rememberSaveable { mutableStateOf(arrayListOf<String>()) }
     //카테고리 선택창 표시
@@ -167,9 +173,9 @@ fun SearchScreen(
             if (search == null) {
                 val apiKey = BuildConfig.TMDB_API_KEY
                 val movies = tmdbService.getWeeklyTrending("movie", apiKey)
-                    .results.distinctBy { it.id }.shuffled()
+                    .results.distinctBy { it.id }.map { it.copy(mediaType = "movie") }.shuffled()
                 val tvShows = tmdbService.getWeeklyTrending("tv", apiKey)
-                    .results.distinctBy { it.id }.shuffled()
+                    .results.distinctBy { it.id }.map { it.copy(mediaType = "tv") }.shuffled()
 
                 // 첫 화면에는 기존처럼 영화와 TV를 각각 한 편씩 우선 포함합니다.
                 val firstPicks = movies.take(1) + tvShows.take(1)
@@ -231,6 +237,15 @@ fun SearchScreen(
             genreIds = selectedGenres.mapNotNull { availableGenres[it] }.toSet()
         )
 
+        // 👈 선택한 장르가 있다면 각 장르에 2점 부여
+        if (selectedGenres.isNotEmpty()) {
+            val searchedTmdbGenres = selectedGenres.mapNotNull { name ->
+                availableGenres[name]?.let { id -> com.example.myott.API.TmdbGenre(id = id, name = name) }
+            }
+            coroutineScope.launch {
+                scoreRepository.recordSearchGenres(searchedTmdbGenres)
+            }
+        }
         // 조건이 바뀌면 첫 페이지부터, 같으면 이전 검색의 남은 후보부터 시작합니다.
         if (activeSearch?.query != conditions) {
             activeSearch = ContentSearch(conditions)
@@ -240,7 +255,7 @@ fun SearchScreen(
         // 기존 SearchScreen의 콜백도 유지합니다.
         onSearch(
             conditions.title,
-            selectedType.takeUnless { it == ALL_TYPES },
+            selectedType,
             selectedGenres.toList()
         )
     }
@@ -326,16 +341,13 @@ fun SearchScreen(
                 }
 
                 // 적용된 조건을 검색창 아래에 표시합니다.
-                val filters = listOfNotNull(selectedType.takeUnless { it == ALL_TYPES }) +
-                        selectedGenres
-                if (filters.isNotEmpty()) {
-                    Text(
-                        text = filters.joinToString(" · "),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
+                val filters = listOf(selectedType) + selectedGenres
+                Text(
+                    text = filters.joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 4.dp)
+                )
                 // 검색창 아래에 남은 공간을 사용하고, 결과 목록만 세로로 스크롤합니다.
                 LazyColumn(
                     state = listState,
@@ -362,7 +374,10 @@ fun SearchScreen(
                         }
                         else -> {
                             items(trendingItems) { content ->
-                                SearchResultRow(content)
+                                SearchResultRow(
+                                    content = content,
+                                    onClick = { onMovieClick(content.id, content.mediaType) }
+                                )
                             }
 
                             if (hasMore) {
@@ -389,7 +404,6 @@ fun SearchScreen(
                                     }
                                 }
                             }
-
                         }
                     }
                 }
@@ -572,9 +586,12 @@ private fun CategoryChips(
 
 // 작품 한 편의 포스터를 왼쪽에, 제목과 줄거리를 오른쪽에 표시합니다.
 @Composable
-private fun SearchResultRow(content: Movie) {
+private fun SearchResultRow(
+    content: Movie,
+    onClick: () -> Unit
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().height(135.dp),
+        modifier = Modifier.fillMaxWidth().height(135.dp).clickable(onClick = onClick),
         horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Box(

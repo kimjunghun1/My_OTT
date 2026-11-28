@@ -24,7 +24,7 @@ interface GenreDao {
     // 특정 장르의 선택 상태 변경
     @Query(" UPDATE preferred_genres SET isSelected = :selected WHERE genreId = :genreId")
     suspend fun updateGenreSelection(
-        genreId: String,
+        genreId: Int,
         selected: Boolean
     )
 
