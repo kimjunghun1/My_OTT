@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.example.myott.PersonDao
+import com.example.myott.PersonRecord
 import com.example.myott.detail.ContentRecord
 import com.example.myott.detail.ContentScoreDao
 import com.example.myott.detail.GenreScore
@@ -14,8 +16,9 @@ import com.example.myott.detail.GenreScore
         PreferredGenre::class, // 이 클래스는 PreferredGenre라는 데이터를 저장할 것이라는 뜻
         GenreScore::class,     // 장르별 점수 (추천 알고리즘)
         ContentRecord::class,  // 콘텐츠별 관심 있음/없음, OTT 보러가기 기록
+        PersonRecord::class    // 추가: 감독과 배우 정보
     ],
-    version = 5, // 점수 테이블 추가로 버전 올림
+    version = 6, // 점수 테이블 추가로 버전 올림
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun genreDao(): GenreDao // GenreDao를 가져오는 함수
     abstract fun contentScoreDao(): ContentScoreDao // 점수/기록 Dao
 
+    abstract fun personDao(): PersonDao  // 추가: 인물 DAO
     companion object { // 클래스 객체를 생성하지 않아도 내부의 변수나 함수를 사용할 수 있는 영역
         @Volatile // 여러 스레드가 동시에 INSTANCE 사용 가능
         private var INSTANCE: AppDatabase? = null // 데이터베이스 객체를 보관하는 변수

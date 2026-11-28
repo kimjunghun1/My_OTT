@@ -39,12 +39,14 @@ data class Credits(
 )
 
 data class CastMember(
+    val id: Int,               // 추가: TMDB 배우 ID
     val name: String?,
     val character: String?,
     val order: Int?,
 )
 
 data class CrewMember(
+    val id: Int,          // 추가: TMDB 인물 고유 ID
     val name: String?,
     val job: String?, // "Director"면 감독
 )

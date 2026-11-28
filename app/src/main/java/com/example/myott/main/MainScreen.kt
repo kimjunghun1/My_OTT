@@ -58,10 +58,10 @@ import com.example.myott.WelcomeScreen
 import com.example.myott.detail.ContentDetailScreen
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.platform.LocalContext
-import com.example.myott.AppContainer
-import com.example.myott.GenreViewModel
 import com.example.myott.WelcomeScreen
 import com.example.myapplication.GenreSelectionScreen
+import com.example.myott.PersonRecommendedWork
+import com.example.myott.main.PersonRecommendationViewModel
 
 // 색상 (장르 선택 화면과 같은 다크 + 보라 계열)
 private val MainBackground = Color(0xFF121212)
@@ -221,9 +221,25 @@ private fun HomeTab(onMovieClick: (Int, String) -> Unit) {
     )
     val recommendedMovies by homeViewModel.recommendedList.collectAsState() // HomeViewModel의 recommendedList를 화면과 실시간으로 연결
 
+    // 추가: 배우 및 감독 추천 ViewModel
+    val personRecommendationViewModel: PersonRecommendationViewModel =
+        viewModel(
+            factory = appContainer.personRecommendationViewModelFactory
+        )
+
+    // 추가: 감독 추천 작품 목록
+    val directorWorks by personRecommendationViewModel.directorWorks.collectAsState()
+
+    // 추가: 배우 추천 작품 목록
+    val actorWorks by personRecommendationViewModel.actorWorks.collectAsState()
+
+    // 추가: 추천 작품 로딩 상태
+    val personRecommendationLoading by personRecommendationViewModel.isLoading.collectAsState()
+
     // 홈 탭에 돌아올 때마다 최신 점수/관심없음 상태를 반영해 추천 목록 갱신
     androidx.compose.runtime.LaunchedEffect(Unit) { // LaunchedEffect는 괄호 안의 값이 바뀔 때만 중괄호 안 코드 실행->Unit이므로 홈 화면에 처음 진입할 때 1번만 실행
         homeViewModel.refreshRecommendations() // 화면 새로고침
+        personRecommendationViewModel.loadRecommendations() // 추가: 배우 및 감독 추천 새로고침
     }
 
     LazyColumn(
@@ -256,8 +272,28 @@ private fun HomeTab(onMovieClick: (Int, String) -> Unit) {
                 onMovieClick = onMovieClick
             )
         }
-        item { ContentSection("좋아하는 배우와 함께하는 작품", "관심 작품에 나온 배우의 다른 작품") { id -> onMovieClick(id, "movie") } }
-        item { ContentSection("선호 감독의 추천 작품", "관심 작품 감독의 다른 작품") { id -> onMovieClick(id, "movie") } }
+
+        // 2. 배우 추천 작품
+        item {
+            PersonRecommendedSection(
+                title = "좋아하는 배우와 함께하는 작품",
+                subtitle = "관심 작품에 나온 배우의 다른 작품",
+                works = actorWorks,
+                isLoading = personRecommendationLoading,
+                onMovieClick = onMovieClick
+            )
+        }
+
+        // 3. 감독 추천 작품
+        item {
+            PersonRecommendedSection(
+                title = "선호 감독의 추천 작품",
+                subtitle = "관심 작품 감독의 다른 작품",
+                works = directorWorks,
+                isLoading = personRecommendationLoading,
+                onMovieClick = onMovieClick
+            )
+        }
     }
 }
 
@@ -347,6 +383,133 @@ private fun RecommendedSection( // 콘텐츠 추천 슬라이드를 그려줌
     }
 }
 
+
+@Composable
+private fun PersonRecommendedSection(
+    title: String,
+    subtitle: String,
+    works: List<PersonRecommendedWork>,
+    isLoading: Boolean,
+    onMovieClick: (Int, String) -> Unit
+) {
+    Column(
+        modifier = Modifier.padding(top = 24.dp)
+    ) {
+
+        // 섹션 제목
+        Text(
+            text = title,
+            color = MainText,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
+        Spacer(modifier = Modifier.height(2.dp))
+
+        // 섹션 설명
+        Text(
+            text = subtitle,
+            color = MainSubText,
+            fontSize = 12.sp,
+            modifier = Modifier.padding(horizontal = 20.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 포스터 가로 스크롤
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+
+            // 로딩 중이거나 아직 데이터가 없을 때
+            if (isLoading && works.isEmpty()) {
+                items(5) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 120.dp, height = 180.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MainCard)
+                    )
+                }
+            }
+
+            // 추천 작품이 없을 때
+            else if (works.isEmpty()) {
+                item {
+                    Text(
+                        text = "추천 작품이 없습니다.",
+                        color = MainSubText,
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(
+                            vertical = 20.dp
+                        )
+                    )
+                }
+            }
+
+            // 실제 추천 작품 표시
+            else {
+                items(works.size) { index ->
+
+                    val work = works[index]
+
+                    Column(
+                        modifier = Modifier.clickable {
+                            // 영화인지 TV 시리즈인지 구분해서 상세 화면으로 이동
+                            onMovieClick(
+                                work.id,
+                                work.mediaType
+                            )
+                        }
+                    ) {
+
+                        // 포스터
+                        Box(
+                            modifier = Modifier
+                                .size(
+                                    width = 120.dp,
+                                    height = 180.dp
+                                )
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(MainCard)
+                        ) {
+                            if (work.posterPath != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(
+                                        "https://image.tmdb.org/t/p/w500${work.posterPath}"
+                                    ),
+                                    contentDescription = work.title,
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // 작품 제목
+                        Text(
+                            text = work.title,
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            style = TextStyle(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            modifier = Modifier.width(120.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+/*
 // 섹션 하나: 제목 + 부제 + 빈 포스터 자리
 @Composable
 private fun ContentSection(title: String, subtitle: String, onMovieClick: (Int) -> Unit) {
@@ -438,3 +601,4 @@ private fun PosterPlaceholderRow(movie: Movie?, onMovieClick: (Int) -> Unit) {
 //        Text(text = description, color = MainSubText, fontSize = 14.sp)
 //    }
 //}
+*/

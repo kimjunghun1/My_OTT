@@ -87,7 +87,7 @@ fun ContentDetailScreen(
     val app = context.applicationContext as AppContainer
     val viewModel: ContentDetailViewModel = viewModel(
         key = "detail_${mediaType}_$movieId",
-        factory = ContentDetailViewModel.factory(movieId, mediaType, app.contentScoreRepository)
+        factory = ContentDetailViewModel.factory(movieId, mediaType, app.contentScoreRepository, app.personRepository)
     )
     val uiState by viewModel.uiState.collectAsState()
     val record by viewModel.record.collectAsState()
