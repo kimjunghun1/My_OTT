@@ -37,7 +37,7 @@ import com.example.myott.API.tmdbService
 import com.example.myott.BuildConfig
 import kotlinx.coroutines.CancellationException
 import androidx.compose.foundation.lazy.rememberLazyListState
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 // OTT 유형 제한을 해제할 때 사용하는 선택지
 private const val ALL_TYPES = "전체"
